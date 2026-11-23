@@ -1,0 +1,35 @@
+{
+  "name": "apex-auto",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Call intake for the counter: answer the phone, record the call, share the queue. Built on Zubra, Zubra UI and the Potomac kit.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "migrate": "node src/infra/migrate-cli.js",
+    "seed": "node src/infra/seed-cli.js",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
+    "backup": "node src/infra/backup-cli.js",
+    "recover-owner": "node src/infra/recover-cli.js",
+    "stress": "node --expose-gc stress/bench.js",
+    "build:islands": "node scripts/build-islands.js"
+  },
+  "dependencies": {
+    "@journey-to-code/symbology": "^0.2.0",
+    "@simplewebauthn/browser": "14.0.0",
+    "@simplewebauthn/server": "14.1.0",
+    "@zubra/compiler": "5.19.0",
+    "@zubra/runtime": "5.19.0",
+    "@zubra/server": "5.19.0",
+    "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "esbuild-svelte": "^0.9.5",
+    "svelte": "^5.57.3"
+  }
+}
