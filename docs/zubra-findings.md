@@ -10,6 +10,8 @@ Text trimmed to a length limit could cut an emoji in half. Zubra's renderer thro
 
 Each is pinned by a test, so the behaviour is recorded and a change shows up.
 
+*Re-checked on Zubra 6.0.5: findings 1, 3 and 6 are fixed (a lone surrogate renders, a failed render of an unknown component leaves the page usable, and a rejection's message is no longer sent to the browser). In finding 2, unbalanced markup now reports `<i> is never closed`. The tests that pin findings 4 and 5 still pass. The tests now pin the new behaviour for the rest. The rest of this page describes Zubra 5.17.0.*
+
 1. **Half a surrogate pair in a prop throws `the request isn't JSON: unexpected end of hex escape at line 1 column 107`.** It names neither the component nor the prop. The compiler's JSON request seems to carry the lone `\ud83d` escape and the other side refuses it. Suggest `toWellFormed()` on strings going in, or at least an error that names the prop.
 2. **A slot is compiled as markup, and a mistake in it reports the wrong place.** `<script>` and `onerror` pass straight through (marked `data-zb-slotted`), so callers must escape. Unbalanced markup (`a & b <i>`) or an unterminated `<!--` throws, and the error points at a line of the *component's* file (`row-item.zb:87:3` in a ten-line file). Suggest a text form for a slot (`{ text: '…' }`) that escapes for you, and positions that say "in slot content".
 3. **A failed render of an unknown component leaves the page unable to finish.** `render` records the name as used before checking it exists, so a later `finish()` throws. An error page built on the same page object can't be sent. (A bad *prop* doesn't do this.)
