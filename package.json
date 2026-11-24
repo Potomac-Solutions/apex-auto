@@ -10,6 +10,7 @@
   },
   "scripts": {
     "start": "node src/server.js",
+    "demo": "node src/infra/demo-cli.js",
     "migrate": "node src/infra/migrate-cli.js",
     "seed": "node src/infra/seed-cli.js",
     "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",

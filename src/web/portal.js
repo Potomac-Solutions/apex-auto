@@ -1,6 +1,7 @@
 // The customer portal: public pages, before any staff sign-in. Customers join through an invite
 // (a QR code or an emailed link), confirm their email, and from then on sign in with a one-time link.
 import { esc, ago } from './html.js';
+import { guestSignIn } from '../demo.js';
 import { layout, avatarHtml, avatarEditor } from './ui.js';
 import { partHelper } from './pages/details.js';
 import { qrSvg } from '../infra/qr.js';
@@ -41,7 +42,7 @@ const SAYS = {
 };
 const GOOD = { sent: 'Thank you. We’ve got it.', saved: 'Saved.', mailed: 'Done. If that address can be used, a link is on its way.', invited: 'Invite sent.', removed: 'Removed.', note: 'Note added.' };
 
-export function createPortalPages({ app, config, zubra, now, repName = (e) => e }) {
+export function createPortalPages({ app, config, zubra, now, demo = false, repName = (e) => e }) {
   const any = createLimiter({ max: 120, windowMs: 60_000, now });
   const sends = createLimiter({ max: 10, windowMs: 10 * 60_000, now }); // anything that sends an email, per address
   const uploads = createLimiter({ max: 20, windowMs: 60_000, now });
@@ -284,7 +285,7 @@ export function createPortalPages({ app, config, zubra, now, repName = (e) => e 
           return sentPage(res, nonce, 'Check your email', 'If that address has an account, a sign-in link is on its way. It works once, for 30 minutes.'), true;
         }
         page(res, nonce, 200, 'Sign in', `<div class="head"><h1>Sign in</h1></div>${flash(q)}
-          <section class="panel stack" data-passkey-login hidden><button type="button" class="btn primary" data-passkey-start>Sign in with a passkey</button><p class="flash problem" role="alert" data-passkey-problem hidden></p></section>
+          ${demo ? guestSignIn(esc) : ''}<section class="panel stack" data-passkey-login hidden><button type="button" class="btn primary" data-passkey-start>Sign in with a passkey</button><p class="flash problem" role="alert" data-passkey-problem hidden></p></section>
           <form class="panel stack" method="post" action="/portal/login/password"><h2>Username and password</h2><label>Username<input name="username" maxlength="40" required autocomplete="username" autocapitalize="none" spellcheck="false"></label>
           <label>Password<input name="password" type="password" maxlength="200" required autocomplete="current-password"></label><button class="btn">Sign in</button></form>
           <form class="panel stack" method="post" action="/portal/login"><h2>Or get a link by email</h2><label>Email<input name="email" type="email" maxlength="120" required autocomplete="email"></label><button class="btn">Email me a link</button>

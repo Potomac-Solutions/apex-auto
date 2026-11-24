@@ -38,6 +38,8 @@ import { customerRoutes } from './pages/customers.js';
 import { itemRoutes } from './pages/items.js';
 import { overviewRoutes } from './pages/overview.js';
 import { ROLES } from '../domain/permissions.js';
+import { lockedStaff, staffSignIn } from '../demo.js';
+import { esc } from './html.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(here, '..', '..', 'public');
@@ -45,9 +47,11 @@ const TYPES = { '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; char
 const MAX_BODY = 256 * 1024;
 const IMPORT_BODY = 2 * 1024 * 1024; // a pasted customer list, percent-encoded, is a few times its size
 
-export async function createWeb({ db, config, now = Date.now, log = createLogger({ requests: config.logRequests }), sendPush, fetcher, ai }) {
+export async function createWeb({ db, config, demo = process.env.DEMO === '1', now = Date.now, log = createLogger({ requests: config.logRequests }), sendPush, fetcher, ai }) {
   const store = sqliteStore(db);
-  const staff = createStaff({ store, roles: ROLES, invites: { manager: ['staff'] }, name: 'call-store', secure: config.production });
+  const kitStaff = createStaff({ store, roles: ROLES, invites: { manager: ['staff'] }, name: 'call-store', secure: config.production });
+  // The public demo (src/demo.js) refuses changes to its sign-ins.
+  const staff = demo ? lockedStaff(kitStaff) : kitStaff;
   const notices = createNotices({ secret: config.secret });
   const zubra = createZubra({ components: join(here, 'components'), production: config.production });
   const clients = new Set();
@@ -111,7 +115,7 @@ export async function createWeb({ db, config, now = Date.now, log = createLogger
   const customer = createCustomerPages({ app, config, zubra, now });
   const site = createSite({ config, app, now });
   const doors = createDoors({ staff, store, config, zubra, audit: app.audit, now });
-  const portal = createPortalPages({ app, config, zubra, now, repName: (email) => people.name(email) });
+  const portal = createPortalPages({ app, config, zubra, now, demo, repName: (email) => people.name(email) });
   const signInLimit = createLimiter({ max: 20, windowMs: 60_000, now });
 
   function html(res, status, body, extra = {}) {
@@ -136,7 +140,7 @@ export async function createWeb({ db, config, now = Date.now, log = createLogger
 
   function renderSignIn(req, res, url) {
     const page = zubra.page({ nonce: res.cspNonce });
-    html(res, 200, page.finish(layout({ title: 'Sign in', who: null, body: pages.signIn(url), business: config.business })), { 'content-security-policy': res.csp });
+    html(res, 200, page.finish(layout({ title: 'Sign in', who: null, body: (demo ? staffSignIn(esc) : '') + pages.signIn(url), business: config.business })), { 'content-security-policy': res.csp });
   }
 
   async function readRaw(req, limit) {
@@ -392,7 +396,7 @@ export async function createWeb({ db, config, now = Date.now, log = createLogger
     for (const res of clients) res.end();
   });
 
-  return { server, app, staff, store, people };
+  return { server, app, staff, store, people, demo };
 }
 
 function redirect(res, location) {

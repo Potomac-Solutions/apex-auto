@@ -22,6 +22,25 @@ A call-intake and parts-ordering app for an auto parts store, shown here as the 
 - **Vehicle lookup and part finder.** VIN, year and model (closest match), or year / make / model / engine / drivetrain; then NAPA, Balkamp and Dorman numbers from the shop's own saved answers first and Claude only when nothing is saved. See `docs/parts-finder.md`.
 - **Live.** Watch a coworker's call and suggest a part number to them, with a manager/owner switch (off by default).
 
+## The public demo
+
+`npm run demo` wipes the database, fills it with a working Apex Auto Supply (twenty parts, ten regulars, three weeks of made-up calls, seven open in today's queue, one customer with an online account), and starts it. Three staff sign-ins and one customer sign-in are shown on the sign-in pages:
+
+| Who | Sign in | Password | Where |
+| --- | --- | --- | --- |
+| Owner | `owner@example.com` | `apex-owner-demo` | `/staff/sign-in`: everything |
+| Manager | `manager@example.com` | `apex-manager-demo` | reports, catalog, hours |
+| Counter staff | `counter@example.com` | `apex-counter-demo` | the queue and customers |
+| Customer | `riley.morgan` | `apex-guest-demo` | `/portal/login` |
+
+With `DEMO=1` (set by `npm run demo`) the server is a demo anyone can try (`src/demo.js`):
+
+- Nobody can change a demo staff account: not its password, roles or name, or turn it off. Anything else a visitor does lasts until the next reset.
+- It exits once a day at 4 am Eastern. On Railway, `railway.json` uses the "always" restart policy, so it starts again with fresh data, the same sign-ins, and calls dated today.
+- Backups are off, and nothing is really sold or sent.
+
+On Railway: set `DEMO=1`, `NODE_ENV=production`, `SESSION_SECRET` (32+ characters), `TRUSTED_PROXIES=1` and `PUBLIC_URL`. It needs no volume.
+
 ## Run it
 
 Needs Node 22.13 or later.
