@@ -4,6 +4,7 @@ import { migrate, openDatabase } from './infra/db.js';
 import { dirname, join } from 'node:path';
 import { createWeb } from './web/server.js';
 import { dailyBackup } from './infra/backup.js';
+import { nightly } from './demo.js';
 
 checkConfig(config);
 const db = openDatabase(config.database);
@@ -25,7 +26,8 @@ if (backupHours > 0 && config.database !== ':memory:') {
   setInterval(backUp, backupHours * 3_600_000).unref();
 }
 
-const { server, staff } = await createWeb({ db, config });
+const { server, staff, demo } = await createWeb({ db, config });
+if (demo) nightly();
 server.listen(config.port, async () => {
   const origin = process.env.PUBLIC_URL ?? `http://localhost:${config.port}`;
   console.log(`${config.business} call desk on ${origin}`);
