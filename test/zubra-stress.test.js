@@ -57,9 +57,9 @@ test('props: hostile text in every string prop of every component never becomes 
   assert.ok(checked > 300, `only ${checked} combinations were tried`);
 });
 
-test('FINDING: half a surrogate pair in a prop makes the renderer throw (the app cleans text before it gets there)', () => {
+test('half a surrogate pair in a prop renders (Zubra 6 no longer throws; the app still cleans text before it gets there)', () => {
   for (const text of ['\ud83d', 'a\ud83dz', '\ude00 trailing low half', '🙂'.slice(0, 1)]) {
-    assert.throws(() => app.page({ nonce: 'n' }).render('text-field', { label: text }), /isn't JSON/, `expected a render error for ${JSON.stringify(text)}`);
+    assert.doesNotThrow(() => app.page({ nonce: 'n' }).render('text-field', { label: text }), `a lone surrogate renders: ${JSON.stringify(text)}`);
     assert.doesNotThrow(() => app.page({ nonce: 'n' }).render('text-field', { label: text.toWellFormed() }), 'well-formed text renders');
   }
   assert.doesNotThrow(() => app.page({ nonce: 'n' }).render('text-field', { label: '🙂 👨‍👩‍👧‍👦 \u202e' }), 'whole characters are fine');
@@ -95,7 +95,7 @@ test('slots: a slot is compiled as markup, so the caller escapes text; unbalance
   assert.match(slot('<img src=x onerror=alert(1)>'), /onerror="alert\(1\)"/, 'so is a handler');
   assert.match(slot('a &amp; b &lt;i&gt;'), /a &amp; b &lt;i&gt;/, 'escaped text arrives as text');
   assert.match(slot('{alert(1)} {{7*7}}'), /\{alert\(1\)\} \{\{7\*7\}\}/, 'braces in a slot are text, not expressions');
-  assert.throws(() => slot('a & b <i>'), /missing closing tag <\/i>/, 'unbalanced markup throws');
+  assert.throws(() => slot('a & b <i>'), /<i> is never closed/, 'unbalanced markup throws');
   assert.throws(() => slot('<!-- x'), /unterminated HTML comment/);
   const props = lab.page({ nonce: 'abc' }).render('row-item', { title: '<b>bold</b>', note: '<i>n</i>' });
   assert.doesNotMatch(props, /<b>bold<\/b>|<i>n<\/i>/, 'props are escaped');
@@ -153,9 +153,9 @@ test('misuse: unknown components, missing props, rendering after finish, deep re
   assert.doesNotThrow(() => page.render('text-field', undefined, undefined));
   assert.throws(() => page.render('text-field', { notAProp: 'x' }), /unknown prop `notAProp`/, 'a prop the component doesn\'t declare is refused, naming it');
   assert.throws(() => page.render('status-badge', { variant: 'success' }, { nope: 'x' }), /slot `nope` is not declared/, 'and so is a slot');
-  // Finding: a render of an unknown name is recorded as "used" before it is checked, so the page can
-  // no longer finish, and an error page built on the same page object can't be sent.
-  assert.throws(() => page.finish(shell('<p>hi</p>')), /no component "no-such-component"/, 'a failed render of an unknown name poisons the page');
+  // Zubra 5 recorded a render of an unknown name as "used" before checking it, so the page could not
+  // finish. Zubra 6 no longer does: the failed render leaves the page usable.
+  assert.doesNotThrow(() => page.finish(shell('<p>hi</p>')), 'a failed render of an unknown name no longer poisons the page');
   const clean = app.page({ nonce: 'abc' });
   assert.throws(() => clean.render('text-field', { label: null }), /must be a string/);
   const html = clean.finish(shell('<p>hi</p>'));
@@ -170,7 +170,7 @@ test('misuse: unknown components, missing props, rendering after finish, deep re
   assert.equal((out.match(/class="row"/g) ?? []).length, 2000);
 });
 
-test('streaming: a promise prop leaves a pending shell, then a swap with the value, escaped; a rejection becomes a message', async () => {
+test('streaming: a promise prop leaves a pending shell, then a swap with the value, escaped; a rejection stays off the page', async () => {
   const page = lab.page({ nonce: 'abc123' });
   const slow = new Promise((resolve) => setTimeout(() => resolve('ready'), 20));
   const html = page.render('await-box', { label: 'a', message: slow }) + page.render('await-box', { label: 'b', message: Promise.reject(new Error('boom')) });
@@ -180,7 +180,7 @@ test('streaming: a promise prop leaves a pending shell, then a swap with the val
   const all = chunks.join('');
   assert.match(chunks[0], /Loading/, 'the shell shows pending content first');
   assert.match(all, /ready/);
-  assert.match(all, /boom/);
+  assert.doesNotMatch(all, /boom/, "a rejection's message is not sent to the browser");
 });
 
 test('streaming: values that try to close the script that carries them stay data', async () => {
@@ -253,7 +253,7 @@ test('FINDING: a promise that never settles keeps the stream open for ever; the 
   assert.equal(second, 'still open', 'no timeout of its own: the caller must bound slow promises');
 });
 
-test('FINDING: the message of a rejected promise goes to the browser as it is, so reject with words meant for people', async () => {
+test('the message of a rejected promise stays on the server (Zubra 6; Zubra 5 sent it to the browser as written)', async () => {
   const reject = async (reason) => {
     const page = lab.page({ nonce: 'abc123' });
     const html = page.render('await-box', { label: 'x', message: Promise.reject(reason) });
@@ -261,7 +261,7 @@ test('FINDING: the message of a rejected promise goes to the browser as it is, s
     for await (const chunk of page.chunks(shell(html))) out += chunk;
     return out;
   };
-  assert.match(await reject(new Error('SELECT secret FROM users failed at /srv/app/db.js:41')), /SELECT secret FROM users/, 'an internal message is sent as written');
-  assert.match(await reject({ code: 'E', detail: 'x' }), /\[object Object\]/, 'a non-Error reason becomes "[object Object]"');
-  assert.doesNotMatch(await reject(new Error('<script>alert(1)</script>')), /<script>alert\(1\)/, 'but it is escaped');
+  assert.doesNotMatch(await reject(new Error('SELECT secret FROM users failed at /srv/app/db.js:41')), /SELECT secret FROM users/, 'an internal message is not sent');
+  assert.doesNotMatch(await reject({ code: 'E', detail: 'x' }), /\[object Object\]/, 'nor is a non-Error reason');
+  assert.doesNotMatch(await reject(new Error('<script>alert(1)</script>')), /<script>alert\(1\)/, 'and a hostile one is never sent as markup');
 });
