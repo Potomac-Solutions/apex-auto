@@ -2,7 +2,7 @@
 
 A call desk for the parts counter. Someone answers the phone, writes down what the caller needs, and the call goes into a shared queue that coworkers can see, claim, park, help with and finish. Customers and items are kept so the regulars are recognised and the same parts aren't described from scratch.
 
-A call-intake and parts-ordering app for an auto parts store, shown here as the fictional Apex Auto Supply. Built on [Zubra](https://github.com/zubra-js/zubra), [Zubra UI](https://github.com/zubra-js/zubra-ui) and the [Potomac kit](https://github.com/potomac-solutions/kit). It takes the ideas of [Parts Counter](https://github.com/mnichols08/parts-counter) (the ticket is the unit of work; entering information should never take longer than writing it on paper) and drops the Rust/WASM core for plain Node.
+A call-intake and parts-ordering app for an auto parts store, shown here as the fictional Apex Auto Supply. Built on [Zubra](https://github.com/zubra-js/zubra), [Zubra UI](https://github.com/zubra-js/zubra-ui) and the Potomac kit (private). It takes the ideas of [Parts Counter](https://github.com/mnichols08/parts-counter) (the ticket is the unit of work; entering information should never take longer than writing it on paper) and drops the Rust/WASM core for plain Node.
 
 ## What it does
 
